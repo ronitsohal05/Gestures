@@ -7,6 +7,16 @@
 using namespace cv;
 using namespace std;
 
+void mirrorFrame(Mat& frame) {
+    for (int row = 0; row < frame.rows; ++row) {
+        for (int col = 0; col < frame.cols / 2; ++col) {
+            Vec3b& leftPixel = frame.at<Vec3b>(row, col);
+            Vec3b& rightPixel = frame.at<Vec3b>(row, frame.cols - col - 1);
+            swap(leftPixel, rightPixel);
+        }
+    }
+}
+
 int main() {
 
     Mat frame;
@@ -37,6 +47,10 @@ int main() {
             cerr << "ERROR! blank frame grabbed\n";
             break;
         }
+
+        //reflect the frame horizontally to create a mirror effect
+        mirrorFrame(frame);
+
         // show live and wait for a key with timeout long enough to show images
         imshow("Live", frame);
         if (waitKey(5) >= 0)
