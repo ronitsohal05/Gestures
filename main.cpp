@@ -1,61 +1,28 @@
-#include <opencv2/core.hpp>
-#include <opencv2/videoio.hpp>
-#include <opencv2/highgui.hpp>
-#include <iostream>
-#include <stdio.h>
+#include "video_recorder.hpp"
+#include "frame_queue.hpp"
 
-using namespace cv;
-using namespace std;
+#include <opencv2/opencv.hpp>
 
-void mirrorFrame(Mat& frame) {
-    for (int row = 0; row < frame.rows; ++row) {
-        for (int col = 0; col < frame.cols / 2; ++col) {
-            Vec3b& leftPixel = frame.at<Vec3b>(row, col);
-            Vec3b& rightPixel = frame.at<Vec3b>(row, frame.cols - col - 1);
-            swap(leftPixel, rightPixel);
-        }
-    }
-}
+#include <functional>
+#include <atomic>
+#include <thread>
 
 int main() {
+    FrameQueue frameQueue(10);
+    std::atomic<bool> running{true};
 
-    Mat frame;
-    //--- INITIALIZE VIDEOCAPTURE
-    VideoCapture cap;
-    // open the default camera using default API
-    // cap.open(0);
-    // OR advance usage: select any API backend
-    int deviceID = 0;             // 0 = open default camera
-    int apiID = cv::CAP_ANY;      // 0 = autodetect default API
-    // open selected camera using selected API
-    cap.open(deviceID, apiID);
-    // check if we succeeded
-    if (!cap.isOpened()) {
-        cerr << "ERROR! Unable to open camera\n";
-        return -1;
-    }
+    std::thread cameraThread(runCamera, std::ref(frameQueue), std::ref(running));
 
-    //--- GRAB AND WRITE LOOP
-    cout << "Start grabbing" << endl
-        << "Press any key to terminate" << endl;
-    for (;;)
-    {
-        // wait for a new frame from camera and store it into 'frame'
-        cap.read(frame);
-        // check if we succeeded
-        if (frame.empty()) {
-            cerr << "ERROR! blank frame grabbed\n";
-            break;
+    while (running) {
+        cv::Mat frame = frameQueue.pop();
+
+        cv::imshow("Live", frame);
+
+        if (cv::waitKey(5) >= 0) {
+            running = false;
         }
-
-        //reflect the frame horizontally to create a mirror effect
-        mirrorFrame(frame);
-
-        // show live and wait for a key with timeout long enough to show images
-        imshow("Live", frame);
-        if (waitKey(5) >= 0)
-            break;
     }
-    // the camera will be deinitialized automatically in VideoCapture destructor
+
+    cameraThread.join();
     return 0;
 }

@@ -7,7 +7,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(OpenCV REQUIRED)
 
-add_executable(gestures main.cpp)
+add_executable(gestures main.cpp video_recorder.cpp frame_queue.cpp)
 
 target_include_directories(gestures PRIVATE ${OpenCV_INCLUDE_DIRS})
 
